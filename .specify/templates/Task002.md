@@ -55,25 +55,49 @@ The successful response should return the created object, ideally including a un
 
 ***
 
+#### **Security Requirements (AuthN & AuthZ)**
+
+| Requirement | Detail | Implication |
+| :--- | :--- | :--- |
+| **Authentication (AuthN)** | **Required** | Request must contain a **valid JWT** in the `Authorization: Bearer` header. |
+| **Authorization (AuthZ)** | **Role-Based Access** | The authenticated user must have the **`administrator`** role. |
+| 
+
+
 ### ✅ Acceptance Criteria (AC) and Test Cases
 
 #### **AC 1: Successful Event Creation**
 
-* **Criterion:** A successful POST request for a valid `SpecialEvent` must return an **HTTP 201 Created** response with a single `SpecialEvent` object (including its new `EventID`).
+* **Criterion:** A request with a valid `administrator` token and an existing, targeted `userId` must return can POST request for a valid `SpecialEvent` must return an **HTTP 201 Created** response with a single `SpecialEvent` object (including its new `EventID`).
 * **Test Case 1.1 (Valid Post):**
+    * **PreCondition:**Request includes a valid token for an **`administrator`**
     * **Input Body:** A valid JSON object matching the `SpecialEvent` schema with all required fields.
     * **Expected Output:** **HTTP 201 Created** with a JSON object containing the full event data and a new `EventID`. The `Location` header should ideally point to the newly created resource.
+#### **AC 2: Authentication Failure**
 
-#### **AC 2: Failure on Bad Request**
+* **Criterion:** If the request lacks a valid authentication token, the API must return an **HTTP 401 Unauthorized** response.
+* **Test Case 2.1 (Missing Token):**
+    * **Input:** A valid JSON object matching the `SpecialEvent` schema with all required fields. without an `Authorization` header.
+    * **Expected Output:** **HTTP 401 Unauthorized**.
+
+#### **AC 3: Authorization Failure (Incorrect Role)**
+
+* **Criterion:** If the authenticated user does not possess the required **`administrator`** role, the API must return an **HTTP 403 Forbidden** response.
+* **Test Case 3.1 (Non-Admin Role):**
+    * **Pre-condition:** Request includes a valid token for a user with the **`standard`** role.
+    * **Input:** A valid JSON object matching the `SpecialEvent` schema with all required fields.
+    * **Expected Output:** **HTTP 403 Forbidden** with an `ErrorModel` detailing the permission denial.
+
+#### **AC 4: Failure on Bad Request**
 
 * **Criterion:** If the event creation fails due to invalid or missing required data, the API must return an **HTTP 400 Bad Request** response.
-* **Test Case 2.1 (Missing Required Field):**
+* **Test Case 4.1 (Missing Required Field):**
     * **Input Body:** A JSON object where a required field (e.g., `EventName`) is missing or null.
     * **Expected Output:** **HTTP 400 Bad Request** with a structured error model indicating the specific validation failure (e.g., "EventName is required").
-* **Test Case 2.2 (Invalid Data Type):**
+* **Test Case 4.2 (Invalid Data Type):**
     * **Input Body:** A JSON object where a field has an incorrect type (e.g., `EventPrice` is a string like `"free"` instead of a number).
     * **Expected Output:** **HTTP 400 Bad Request** with a structured error model indicating the data type mismatch.
-* **Test Case 2.3 (Invalid Date Format):**
+* **Test Case 4.3 (Invalid Date Format):**
     * **Input Body:** A JSON object where an entry in `EventDates` is not a valid ISO 8601 date.
     * **Expected Output:** **HTTP 400 Bad Request** with a structured error model indicating the date format error.
 
@@ -85,8 +109,9 @@ The successful response should return the created object, ideally including a un
 | :--- | :--- | :--- | :--- |
 | **201** | Created | `SpecialEvent` (Output) | The special event was successfully created. |
 | **400** | Bad Request | `ErrorModel` | The request body contained invalid or incomplete data. |
+| **401** | Unauthorized | `ErrorModel` | Missing or invalid **Authentication** (AuthN) credentials. |
+| **403** | Forbidden | `ErrorModel` | Insufficient **Authorization** (AuthZ) permissions (e.g., wrong role). |
 | **404** | Not Found | `ErrorModel` | (Placeholder) The resource path is correct, but an underlying required resource could not be found (less likely for a POST). |
-
 * *Note: **ErrorModel** should contain fields like `code`, `message`, and `details` to aid client debugging.*
 
 ### Implementation for FR-002

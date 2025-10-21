@@ -75,20 +75,36 @@ The successful response should return the **fully updated** object.
     * **Input:** `PUT /SpecialEvent/101` with a valid JSON body containing updated details (e.g., changed `EventPrice` from $10 to $15).
     * **Expected Output:** **HTTP 200 OK** with the JSON object for event `101` reflecting the new price of $15.
 
-#### **AC 2: Failure on Bad Request (Validation)**
+#### **AC 2: Authentication Failure**
+
+* **Criterion:** If the request lacks a valid authentication token, the API must return an **HTTP 401 Unauthorized** response.
+* **Test Case 2.1 (Missing Token):**
+    * **Input:** A valid JSON object matching the `SpecialEvent` schema with all required fields. without an `Authorization` header.
+    * **Expected Output:** **HTTP 401 Unauthorized**.
+
+#### **AC 3: Authorization Failure (Incorrect Role)**
+
+* **Criterion:** If the authenticated user does not possess the required **`administrator`** role, the API must return an **HTTP 403 Forbidden** response.
+* **Test Case 3.1 (Non-Admin Role):**
+    * **Pre-condition:** Request includes a valid token for a user with the **`standard`** role.
+    * **Input:** A valid JSON object matching the `SpecialEvent` schema with all required fields.
+    * **Expected Output:** **HTTP 403 Forbidden** with an `ErrorModel` detailing the permission denial.
+
+
+#### **AC 4: Failure on Bad Request (Validation)**
 
 * **Criterion:** If the update fails due to invalid data (e.g., missing fields, incorrect type, or validation violations like non-positive price), the API must return an **HTTP 400 Bad Request** response.
-* **Test Case 2.1 (Missing Required Field):**
+* **Test Case 4.1 (Missing Required Field):**
     * **Input Body:** A JSON object for `PUT /SpecialEvent/101` where a required field (e.g., `EventName`) is missing.
     * **Expected Output:** **HTTP 400 Bad Request** with a structured error model indicating the missing field.
-* **Test Case 2.2 (Price Validation Failure - FR-003):**
+* **Test Case 4.2 (Price Validation Failure - FR-003):**
     * **Input Body:** A JSON object for `PUT /SpecialEvent/101` where `EventPrice: 0.00`.
     * **Expected Output:** **HTTP 400 Bad Request** with a structured error model indicating `EventPrice` must be positive.
 
-#### **AC 3: Event Not Found**
+#### **AC 5: Event Not Found**
 
 * **Criterion:** If the requested `EventId` in the path does not correspond to an existing event, the API must return an **HTTP 404 Not Found** response.
-* **Test Case 3.1 (Non-existent ID):**
+* **Test Case 5.1 (Non-existent ID):**
     * **Input:** `PUT /SpecialEvent/99999` (assuming this ID is not in the system) with a valid JSON body.
     * **Expected Output:** **HTTP 404 Not Found** with a structured error model indicating the resource for ID `99999` was not found.
 

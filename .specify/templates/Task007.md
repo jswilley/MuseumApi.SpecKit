@@ -71,23 +71,39 @@ This object is returned upon successful purchase.
     * **Input Body:** Valid purchase request for `TicketType: "SpecialEvent"`, `EventId: 405`, `Quantity: 1`.
     * **Expected Output:** **HTTP 201 Created** with a confirmation object.
 
-#### **AC 2: Failure on Bad Request**
+#### **AC 2: Authentication Failure**
+
+* **Criterion:** If the request lacks a valid authentication token, the API must return an **HTTP 401 Unauthorized** response.
+* **Test Case 2.1 (Missing Token):**
+    * **Input:** A valid JSON object matching the `SpecialEvent` schema with all required fields. without an `Authorization` header.
+    * **Expected Output:** **HTTP 401 Unauthorized**.
+
+#### **AC 3: Authorization Failure (Incorrect Role)**
+
+* **Criterion:** If the authenticated user does not possess the required **`administrator`** role, the API must return an **HTTP 403 Forbidden** response.
+* **Test Case 3.1 (Non-Admin Role):**
+    * **Pre-condition:** Request includes a valid token for a user with the **`standard`** role.
+    * **Input:** A valid JSON object matching the `SpecialEvent` schema with all required fields.
+    * **Expected Output:** **HTTP 403 Forbidden** with an `ErrorModel` detailing the permission denial.
+
+
+#### **AC 4: Failure on Bad Request**
 
 * **Criterion:** If the purchase fails due to invalid or missing data (e.g., invalid email, missing required fields), the API must return an **HTTP 400 Bad Request** response.
-* **Test Case 2.1 (Missing Required Field):**
+* **Test Case 4.1 (Missing Required Field):**
     * **Input Body:** Request missing the required `PaymentToken`.
     * **Expected Output:** **HTTP 400 Bad Request** indicating the missing field.
-* **Test Case 2.2 (Conditional Field Missing):**
+* **Test Case 4.2 (Conditional Field Missing):**
     * **Input Body:** Request with `TicketType: "SpecialEvent"` but missing the required `EventId`.
     * **Expected Output:** **HTTP 400 Bad Request** indicating `EventId` is required for the specified ticket type.
 
-#### **AC 3: External Failure/Unavailable Resource**
+#### **AC 5: External Failure/Unavailable Resource**
 
 * **Criterion:** If the purchase fails due to external factors (e.g., payment rejection, event sold out, event not found), the API must return an appropriate error.
-* **Test Case 3.1 (Event Not Found):**
+* **Test Case 5.1 (Event Not Found):**
     * **Input Body:** Request for `TicketType: "SpecialEvent"` with a non-existent `EventId: 99999`.
     * **Expected Output:** **HTTP 404 Not Found** with a structured error model indicating the event ID was not found.
-* **Test Case 3.2 (Payment or Capacity Failure):**
+* **Test Case 5.2 (Payment or Capacity Failure):**
     * **Input Body:** Request where the `PaymentToken` is rejected by the processor, OR the `Quantity` exceeds remaining capacity.
     * **Expected Output:** **HTTP 400 Bad Request** with details explaining the specific failure (e.g., "Payment failed," or "Exceeds remaining ticket capacity").
 

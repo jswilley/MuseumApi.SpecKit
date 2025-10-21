@@ -12,17 +12,26 @@ The technical architecture is constrained by the requirement to build a C\# Mini
 
 | Technical Component | Decision | Rationale (Constitution Alignment) |
 | :--- | :--- | :--- |
-| **Target Framework** | **C\# .NET 8 Web API** | Standard, modern framework for high-performance Minimal APIs. |
+| **Target Framework** | **.NET 9** | Standard, modern framework for high-performance Minimal APIs. |
 | **Project Type** | **Minimal API** | Aligns with the project goal of generating a lightweight API. |
-| **API Generation Tooling** | **OpenAPI Generator CLI** | Mandated Contract-First approach requires generating C\# models (DTOs) from the `openapi.yaml` contract. |
-| **Architectural Style** | **Feature Group / Extension Methods** | Ensures the main `Program.cs` file remains minimal and endpoint definitions are externalized, adhering to the Single Responsibility Principle. |
-| **Persistence (Placeholder)** | In-memory Repository (for MVP) | Business logic and persistence must be encapsulated in injectable services (DI is mandatory). |
+| **Architectural Style** | **Feature Group / Extension Methods** | Ensures the main `Program.cs` file remains minimal and endpoint definitions are externalized to an endpoint class, adhering to the Single Responsibility Principle. |
+| **Persistence** | Sqlite Repository | Business logic and persistence must be encapsulated in injectable services (DI is mandatory). |
 | **Logging & Error Handling** | **Serilog and Global Middleware** | Required for proper error handling and observability, and mandates using Serilog for logging. |
 | **Configuration** | **`appsettings.json`** | Configuration must be managed through `appsettings.json` variables. |
 
-### 2. Contract-First Implementation Workflow
+### 2. Project Structure
+MuseumApi.csproj/
+├── models/
+├── services/
+├── endpoints/
+└── data/
+└── context/
+    
 
-The implementation will strictly follow the Contract-First methodology, using the finalized OpenAPI specification as the single source of truth.
+MuseumApi.Tests.csproj/
+├── integration/
+└── unit/
+
 
 #### Phase 2.1: Code Generation and Typing
 
@@ -48,13 +57,14 @@ The plan must address security for administrative actions and enforce data integ
 
 ### 4. Testing & Validation Strategy
 
-Testing is mandatory and must align with the Test-First Development principle.
+Testing is mandatory.
 
 | Test Phase | Tool / Methodology | Objective | Source Reference |
 | :--- | :--- | :--- | :--- |
-| **Contract Testing** | **Specmatic** | Must be run first against the `openapi.yaml` to verify the C\# API implementation conforms to the contract's structure, status codes (200, 201, 400, 404), and response shapes. | |
 | **Integration Testing** | **`WebApplicationFactory` / `HttpClient`** | This is the preferred testing method. Tests will instantiate the Minimal API in-memory, mocking external dependencies via DI to achieve fast, isolated checks on endpoint behavior. | |
 | **Coverage Gate** | CI/CD Pipeline Check | Must maintain a **minimum automated test coverage percentage of 60%** to meet constitutional quality gates. | |
+
+See Testing.md for more information.
 
 ### 5. Key Entity Data Models
 

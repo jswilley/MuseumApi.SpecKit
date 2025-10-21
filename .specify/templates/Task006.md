@@ -58,21 +58,26 @@ So that **visitors are no longer able to view or book it**.
     * **Input:** `DELETE /SpecialEvent/202`
     * **Expected Output:** **HTTP 204 No Content**. A subsequent GET request for `/SpecialEvent/202` should return a **404 Not Found**.
 
-#### **AC 2: Failure on Bad Request/Unauthorized**
 
-* **Criterion:** If the DELETE fails due to an invalid request or authorization issue, the API must return an appropriate error response (**400 Bad Request** or **401 Unauthorized**).
-* **Test Case 2.1 (Invalid Parameter Format):**
-    * **Input:** `DELETE /SpecialEvent/INVALID_ID_FORMAT`
-    * **Expected Output:** **HTTP 400 Bad Request** with a structured error model indicating a path parameter format error.
-* **Test Case 2.2 (Authorization Failure):**
-    * **Pre-condition:** The user sends the request without required authorization credentials.
-    * **Input:** `DELETE /SpecialEvent/202`
-    * **Expected Output:** **HTTP 401 Unauthorized** (as defined in the response codes).
+#### **AC 2: Authentication Failure**
 
-#### **AC 3: Event Not Found**
+* **Criterion:** If the request lacks a valid authentication token, the API must return an **HTTP 401 Unauthorized** response.
+* **Test Case 2.1 (Missing Token):**
+    * **Input:** A valid JSON object matching the `SpecialEvent` schema with all required fields. without an `Authorization` header.
+    * **Expected Output:** **HTTP 401 Unauthorized**.
+
+#### **AC 3: Authorization Failure (Incorrect Role)**
+
+* **Criterion:** If the authenticated user does not possess the required **`administrator`** role, the API must return an **HTTP 403 Forbidden** response.
+* **Test Case 3.1 (Non-Admin Role):**
+    * **Pre-condition:** Request includes a valid token for a user with the **`standard`** role.
+    * **Input:** A valid JSON object matching the `SpecialEvent` schema with all required fields.
+    * **Expected Output:** **HTTP 403 Forbidden** with an `ErrorModel` detailing the permission denial.
+
+#### **AC 4: Event Not Found**
 
 * **Criterion:** If the requested `EventId` does not correspond to an existing special event, the API must return an **HTTP 404 Not Found** response.
-* **Test Case 3.1 (Non-existent ID):**
+* **Test Case 4.1 (Non-existent ID):**
     * **Input:** `DELETE /SpecialEvent/88888` (assuming this ID is not in the system)
     * **Expected Output:** **HTTP 404 Not Found** with a structured error model indicating the resource was not found.
 

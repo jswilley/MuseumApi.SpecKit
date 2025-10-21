@@ -56,17 +56,17 @@ The response body will use the standard `SpecialEvent` model (as defined in FR-0
     * **Input:** `GET /SpecialEvent/101`
     * **Expected Output:** **HTTP 200 OK** with a JSON object representing the special event details, where `EventID` is `101`.
 
-#### **AC 2: Event Not Found**
+#### **AC 3: Event Not Found**
 
 * **Criterion:** If the requested `EventId` does not correspond to an existing special event, the API must return an **HTTP 404 Not Found** response.
-* **Test Case 2.1 (Non-existent ID):**
+* **Test Case 3.1 (Non-existent ID):**
     * **Input:** `GET /SpecialEvent/99999` (assuming this ID is not in the system)
     * **Expected Output:** **HTTP 404 Not Found** with a structured error model indicating the resource was not found.
 
-#### **AC 3: Invalid Parameter Format**
+#### **AC 4: Invalid Parameter Format**
 
 * **Criterion:** If the `EventId` format in the path is invalid (e.g., non-numeric when an integer is expected), the API must return an **HTTP 400 Bad Request** response.
-* **Test Case 3.1 (Invalid Format):**
+* **Test Case 4.1 (Invalid Format):**
     * **Input:** `GET /SpecialEvent/INVALID_ID`
     * **Expected Output:** **HTTP 400 Bad Request** with a structured error model indicating a path parameter format error.
 

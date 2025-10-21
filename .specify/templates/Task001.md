@@ -101,7 +101,6 @@ So that I can **plan my visit** and know when the museum is open.
 
 ### **Implementation for FR-001**
 - [FR-001] Implement [Service] in museumeapi/services/MuseumHourService.cs.  namespace: MuseumApi.Core. Inject the databasee context into the constructor. it has one method named SearchMuseumHours.  it will take the following parameters: parameters StartDate (date), EndDate (date) optional default to today's date, return MuseumDailyHours.  The method will handle pulls or pushes the the database.  Create an interface for this class.  it can be passed to the MuseumHoursEndpoint method.  The Interface to Class association should be registred as a Scoped instance in Program.cs.
-
 - [FR-001] Implement [endpoint/feature] in museumapi/endpoint/MuseumHoursEndpoint.cs  It will implement the description above the the inputs/outs.  It will pass the startdate,enddate to the MuseumHourService's method called SearchMuseumHours.   endpoints should be versioned V1 in the url
 - [FR-001] Add validation and error handling to the Endpoint layer.
 - [FR-001] Add logging for FR-001 operations

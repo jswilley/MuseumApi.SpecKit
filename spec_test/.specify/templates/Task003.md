@@ -62,3 +62,8 @@ So that **event data remains accurate** and prevents erroneous free/negative cha
 | **400** | Bad Request | `ErrorModel` | The validation failed because `EventPrice` was not a positive value. |
 
 * *Note: **ErrorModel** should contain fields like `code`, `message`, and `details` to specifically point out the `EventPrice` validation failure.*
+
+
+### **Logging"**
+-- Add logging on successful (informational level) with input parameters.
+-- Add logging on error with inputput parameters and structured exceptions.

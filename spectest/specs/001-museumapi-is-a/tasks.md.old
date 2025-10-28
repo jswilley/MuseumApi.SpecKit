@@ -1,0 +1,423 @@
+---
+description: "Implementation tasks for Museum API feature"
+---
+
+# Tasks: Museum API
+
+**Input**: Design documents from `/specs/001-museumapi-is-a/`
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/openapi.yaml
+
+**Tests**: This feature includes comprehensive test coverage as required by constitution (70%+ coverage, test-first development, integration tests prioritized)
+
+**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+
+## Format: `[ID] [P?] [Story] Description`
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
+- Include exact file paths in descriptions
+
+## Path Conventions
+```
+MuseumApi/
+├── Context/
+├── Models/
+├── DTOs/
+├── Endpoints/
+├── Services/
+├── Security/
+└── Data/
+
+
+MuseumApi.Tests/                               # Test project
+├── IntegrationTests/                          # WebApplicationFactory tests
+└── Unit/                                      # Model/business logic tests
+```
+
+---
+
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: Project initialization and basic structure per quickstart.md
+
+- [X] T001 Create solution and projects: `dotnet new sln -n MuseumApi`, API project with minimal APIs, test project with xUnit
+- [X] T002 Add NuGet packages: EF Core (SQLite, Design), Swashbuckle, xUnit, AspNetCore.Mvc.Testing, Moq
+- [X] T003 [P] Configure appsettings.json with SQLite connection string and Serilog configuration
+- [X] T004 [P] Create directory structure: Data/, Models/, DTOs/, Endpoints/ in MuseumApi project
+- [X] T005 [P] Create test directory structure: IntegrationTests/, Unit/ in MuseumApi.Tests project
+
+**Checkpoint**: ✅ Project structure ready for implementation
+
+---
+
+## Phase 2: Foundational (Blocking Prerequisites)
+
+**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
+
+**⚠️ CRITICAL**: No user story work can begin until this phase is complete
+
+- [X] T006 Create MuseumContext DbContext in `MuseumApi/Data/MuseumContext.cs` with DbSet placeholders
+- [X] T007 Create DbInitializer class in `MuseumApi/Data/DbInitializer.cs` for database seeding
+- [X] T008 Configure Program.cs: Add DbContext with SQLite, Swagger/OpenAPI, middleware pipeline, HTTPS redirection
+- [X] T009 [P] Add Serilog package and configure structured logging in Program.cs (constitution requirement)
+- [ ] T010 [P] Implement global exception handling middleware for centralized error responses (Problem Details RFC 7807)
+- [X] T011 Create TestWebApplicationFactory in `MuseumApi.Tests/IntegrationTests/TestWebApplicationFactory.cs` for integration testing
+- [X] T012 Make Program class public partial for test access: Add `public partial class Program { }` at end of Program.cs
+
+**Checkpoint**: ✅ Foundation ready - user story implementation can now begin in parallel
+
+---
+
+## Phase 3: User Story 1 - Query Museum Hours (Priority: P1) 🎯 MVP
+
+**Goal**: Visitors can query museum operating hours for specific dates or date ranges
+
+**Independent Test**: Can be fully tested by requesting museum hours for dates and verifying accurate operating times are returned
+
+### Tests for User Story 1 (Test-First per Constitution)
+
+**NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+
+- [X] T013 [P] [US1] Create MuseumContextTests in `MuseumApi.Tests/Unit/MuseumContextTests.cs` - test unique date constraint (FR-022)
+- [X] T014 [P] [US1] Create MuseumHoursIntegrationTests in `MuseumApi.Tests/IntegrationTests/MuseumHoursIntegrationTests.cs` - test GET /museumhours endpoint scenarios
+
+### Implementation for User Story 1
+
+- [X] T015 [US1] Create MuseumDailyHours model in `MuseumApi/Models/MuseumDailyHours.cs` with Date (PK), TimeOpen, TimeClosed properties and validation attributes
+- [X] T016 [US1] Add MuseumDailyHours DbSet to MuseumContext and configure entity (unique date constraint, date-only storage)
+- [ ] T017 [US1] Create EF migration: `dotnet ef migrations add AddMuseumDailyHours --project MuseumApi`
+- [X] T018 [P] [US1] Create MuseumHoursDto in `MuseumApi/DTOs/MuseumHoursDto.cs` for API responses
+- [X] T019 [US1] Create MuseumHoursEndpoints in `MuseumApi/Endpoints/MuseumHoursEndpoints.cs` with MapGet for querying hours (date, startDate, endDate parameters)
+- [X] T020 [US1] Map MuseumHoursEndpoints in Program.cs
+- [X] T021 [US1] Add seed data for museum hours in DbInitializer (7 days of sample data)
+- [X] T022 [US1] Run tests to verify US1 works: `dotnet test --filter "FullyQualifiedName~MuseumHours"`
+
+**Checkpoint**: ✅ User Story 1 is fully functional and testable independently. Visitors can query museum hours. This is MVP!
+
+---
+
+## Phase 4: User Story 2 - Browse Special Events (Priority: P1)
+
+**Goal**: Visitors can discover special events with details (name, description, dates, price)
+
+**Independent Test**: Can be fully tested by retrieving the list of special events and verifying completeness and accuracy
+
+### Tests for User Story 2 (Test-First per Constitution)
+
+- [X] T023 [P] [US2] Create SpecialEventTests in `MuseumApi.Tests/Unit/SpecialEventTests.cs` - test price validation (FR-020), date validation (FR-021)
+- [X] T024 [P] [US2] Create SpecialEventsIntegrationTests in `MuseumApi.Tests/IntegrationTests/SpecialEventsIntegrationTests.cs` - test GET /specialevents endpoints
+- [X] T025 [P] [US2] Add tests for SpecialEventDate unique constraint (FR-023) to MuseumContextTests
+
+### Implementation for User Story 2
+
+- [X] T026 [P] [US2] Create SpecialEvent model in `MuseumApi/Models/SpecialEvent.cs` with EventId (Guid PK), EventName, EventDescription, Price properties and validation
+- [X] T027 [P] [US2] Create SpecialEventDate model in `MuseumApi/Models/SpecialEventDate.cs` with composite PK (EventId, Date) and navigation properties
+- [X] T028 [US2] Add SpecialEvent and SpecialEventDate DbSets to MuseumContext with relationships (one-to-many, cascade delete)
+- [X] T029 [US2] Configure composite key for SpecialEventDate and decimal precision for Price in MuseumContext.OnModelCreating
+- [X] T030 [US2] Create EF migration: `dotnet ef migrations add AddSpecialEvents --project MuseumApi`
+- [X] T031 [P] [US2] Create SpecialEventDto in `MuseumApi/DTOs/SpecialEventDto.cs` with EventDates array
+- [X] T032 [US2] Create SpecialEventsEndpoints in `MuseumApi/Endpoints/SpecialEventsEndpoints.cs` with MapGet for list and MapGet for single event by ID
+- [X] T033 [US2] Implement date filtering logic in SpecialEventsEndpoints (date, startDate, endDate parameters with .Include() for EventDates)
+- [X] T034 [US2] Map SpecialEventsEndpoints in Program.cs
+- [X] T035 [US2] Add seed data for special events and dates in DbInitializer (3-5 sample events)
+- [X] T036 [US2] Run tests to verify US2 works: `dotnet test --filter "FullyQualifiedName~SpecialEvent"`
+
+**Checkpoint**: ✅ User Stories 1 AND 2 both work independently. Visitors can query hours and browse events. This is MVP for P1 user stories!
+
+---
+
+## Phase 5: User Story 3 - Purchase Museum Tickets (Priority: P2)
+
+**Goal**: Visitors can purchase general admission tickets with date validation
+
+**Independent Test**: Can be fully tested by submitting a ticket purchase request and verifying successful transaction processing
+
+### Tests for User Story 3 (Test-First per Constitution)
+
+- [ ] T037 [P] [US3] Create TicketPurchaseIntegrationTests in `MuseumApi.Tests/IntegrationTests/TicketPurchaseIntegrationTests.cs` - test POST /tickets/purchase for general admission
+- [ ] T038 [P] [US3] Add validation tests: closed date rejection, positive quantity, calculate total cost
+
+### Implementation for User Story 3
+
+- [ ] T039 [US3] Create TicketPurchase model in `MuseumApi/Models/TicketPurchase.cs` with PurchaseId (Guid PK), VisitDate, Quantity, TotalCost, EventId (nullable), PurchaseDate
+- [ ] T040 [US3] Add TicketPurchase DbSet to MuseumContext with relationship to SpecialEvent (optional FK, SetNull on delete)
+- [ ] T041 [US3] Create EF migration: `dotnet ef migrations add AddTicketPurchase --project MuseumApi`
+- [ ] T042 [P] [US3] Create TicketPurchaseRequest record in `MuseumApi/DTOs/TicketPurchaseRequest.cs` with VisitDate, Quantity, EventId (nullable)
+- [ ] T043 [P] [US3] Create TicketPurchaseResponse record in `MuseumApi/DTOs/TicketPurchaseResponse.cs` with all purchase details
+- [ ] T044 [US3] Create TicketPurchaseEndpoints in `MuseumApi/Endpoints/TicketPurchaseEndpoints.cs` with MapPost for /tickets/purchase
+- [ ] T045 [US3] Implement general admission logic: validate museum is open on visit date (FR-011), calculate cost, save purchase
+- [ ] T046 [US3] Add validation for positive quantity and proper error responses (400 for validation errors)
+- [ ] T047 [US3] Map TicketPurchaseEndpoints in Program.cs
+- [ ] T048 [US3] Add configuration for general admission price in appsettings.json
+- [ ] T049 [US3] Run tests to verify US3 works: `dotnet test --filter "FullyQualifiedName~TicketPurchase"`
+
+**Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work independently. Visitors can query hours, browse events, and purchase general admission tickets.
+
+---
+
+## Phase 6: User Story 4 - Purchase Special Event Tickets (Priority: P2)
+
+**Goal**: Visitors can purchase tickets for specific special events with event-date validation
+
+**Independent Test**: Can be fully tested by submitting a special event ticket purchase and verifying pricing calculation
+
+### Tests for User Story 4 (Test-First per Constitution)
+
+- [ ] T050 [P] [US4] Add special event purchase tests to TicketPurchaseIntegrationTests - test with EventId, verify price calculation, test event-date validation (FR-012)
+- [ ] T051 [P] [US4] Add edge case tests: event not scheduled on date, invalid event ID
+
+### Implementation for User Story 4
+
+- [ ] T052 [US4] Extend TicketPurchaseEndpoints to handle EventId: validate event exists, validate event scheduled on date (FR-012), use event price
+- [ ] T053 [US4] Implement special event pricing logic: query SpecialEvent for price, calculate TotalCost = Price * Quantity
+- [ ] T054 [US4] Add event name to purchase response for confirmation clarity
+- [ ] T055 [US4] Update DbInitializer to add sample ticket purchases (both general and event tickets)
+- [ ] T056 [US4] Run tests to verify US4 works: `dotnet test --filter "FullyQualifiedName~TicketPurchase"`
+
+**Checkpoint**: At this point, User Stories 1-4 should all work independently. Full visitor experience complete (query, browse, purchase).
+
+---
+
+## Phase 7: User Story 5 - Manage Special Events (Admin) (Priority: P3)
+
+**Goal**: Administrators can create, update, and delete special events
+
+**Independent Test**: Can be fully tested by an administrator creating, updating, and deleting events, verifying changes in public listings
+
+### Tests for User Story 5 (Test-First per Constitution)
+
+- [ ] T057 [P] [US5] Add admin endpoint tests to SpecialEventsIntegrationTests - test POST /specialevents (create event)
+- [ ] T058 [P] [US5] Add update and delete tests: PUT /specialevents/{id}, DELETE /specialevents/{id}
+- [ ] T059 [P] [US5] Add authorization tests: verify 401/403 responses for unauthenticated/unauthorized requests
+
+### Implementation for User Story 5
+
+- [ ] T060 [P] [US5] Create CreateSpecialEventRequest record in `MuseumApi/DTOs/CreateSpecialEventRequest.cs` with EventName, EventDescription, Price, EventDates
+- [ ] T061 [P] [US5] Create UpdateSpecialEventRequest record in `MuseumApi/DTOs/UpdateSpecialEventRequest.cs` with optional fields
+- [ ] T062 [US5] Add MapPost endpoint in SpecialEventsEndpoints for creating events - validate, save event and dates, return 201 with Location header
+- [ ] T063 [US5] Add MapPut endpoint in SpecialEventsEndpoints for updating events - validate, update fields, handle date changes
+- [ ] T064 [US5] Add MapDelete endpoint in SpecialEventsEndpoints for deleting events - handle referential integrity (FR-019)
+- [ ] T065 [US5] Add authentication/authorization middleware to Program.cs (placeholder for admin role check per FR-015)
+- [ ] T066 [US5] Apply [Authorize] attribute or RequireAuthorization() to admin endpoints
+- [ ] T067 [US5] Update OpenAPI annotations for admin endpoints with security requirements
+- [ ] T068 [US5] Run tests to verify US5 works: `dotnet test --filter "FullyQualifiedName~SpecialEvents"`
+
+**Checkpoint**: All user stories should now be independently functional. Complete feature implementation achieved!
+
+---
+
+## Phase 8: Polish & Cross-Cutting Concerns
+
+**Purpose**: Improvements that affect multiple user stories, final quality checks
+
+- [ ] T069 [P] Add XML documentation comments to all public APIs for improved Swagger documentation
+- [ ] T070 [P] Review and update OpenAPI/Swagger metadata: operation IDs, examples, descriptions
+- [ ] T071 Add health check endpoints for container orchestration
+- [ ] T072 Review all error responses for consistency with Problem Details RFC 7807 format
+- [ ] T073 [P] Add logging statements for key operations (purchases, admin changes) per constitution
+- [ ] T074 Verify all async operations use proper async/await pattern (constitution requirement)
+- [ ] T075 Run full test suite and verify 70%+ code coverage: `dotnet test /p:CollectCoverage=true`
+- [ ] T076 Performance test: verify <200ms p95 for read operations, handle 25+ concurrent requests
+- [ ] T077 Run quickstart.md validation: follow setup steps, verify all endpoints work
+- [ ] T078 [P] Code cleanup: apply dotnet format, remove unused usings, consistent naming (camelCase parameters, PascalCase types)
+- [ ] T079 Final integration test: test complete user journey across all stories
+- [ ] T080 Update README with API documentation, deployment instructions, testing commands
+
+**Checkpoint**: Production-ready Museum API with comprehensive test coverage and documentation
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Setup (Phase 1)**: No dependencies - can start immediately
+- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
+- **User Story 1 (Phase 3)**: Depends on Foundational (Phase 2) - MVP baseline
+- **User Story 2 (Phase 4)**: Depends on Foundational (Phase 2) - Independent of US1 but often deployed together (both P1)
+- **User Story 3 (Phase 5)**: Depends on Foundational (Phase 2) and US1 (needs museum hours validation)
+- **User Story 4 (Phase 6)**: Depends on Foundational (Phase 2), US2 (needs events), US3 (extends purchase endpoint)
+- **User Story 5 (Phase 7)**: Depends on Foundational (Phase 2) and US2 (manages events)
+- **Polish (Phase 8)**: Depends on all desired user stories being complete
+
+### User Story Dependencies
+
+- **User Story 1 (P1)**: Independent - Can start immediately after Foundational
+- **User Story 2 (P1)**: Independent - Can start immediately after Foundational
+- **User Story 3 (P2)**: Depends on US1 (requires museum hours data for date validation)
+- **User Story 4 (P2)**: Depends on US2 (requires special events) and US3 (extends purchase logic)
+- **User Story 5 (P3)**: Depends on US2 (manages special events data model)
+
+### Within Each User Story
+
+- Tests MUST be written and FAIL before implementation (TDD per constitution)
+- Models before DbContext configuration
+- DbContext before migrations
+- DTOs in parallel with models (no dependency)
+- Migrations before endpoints
+- Endpoints before endpoint mapping
+- All implementation before running tests
+- Story complete before moving to next priority
+
+### Parallel Opportunities
+
+**Phase 1 - Setup:**
+- T003 (config files), T004 (API directories), T005 (test directories) can all run in parallel
+
+**Phase 2 - Foundational:**
+- T009 (Serilog), T010 (error handling) can run in parallel after T008 (Program.cs basics)
+
+**Within User Story 1:**
+- T013 (unit tests), T014 (integration tests) can run in parallel
+- T015 (model) and T018 (DTO) can run in parallel
+
+**Within User Story 2:**
+- T023, T024, T025 (all tests) can run in parallel
+- T026 (SpecialEvent model), T027 (SpecialEventDate model), T031 (DTO) can all run in parallel
+
+**Within User Story 3:**
+- T037, T038 (tests) can run in parallel
+- T042 (request DTO), T043 (response DTO) can run in parallel
+
+**Within User Story 4:**
+- T050, T051 (tests) can run in parallel
+
+**Within User Story 5:**
+- T057, T058, T059 (tests) can run in parallel
+- T060 (create DTO), T061 (update DTO) can run in parallel
+
+**Phase 8 - Polish:**
+- T069 (XML docs), T070 (OpenAPI metadata), T073 (logging), T078 (code cleanup) can all run in parallel
+
+**Cross-Story Parallelization:**
+- After Foundational (Phase 2) completes, User Story 1 (Phase 3) and User Story 2 (Phase 4) can be developed in parallel by different developers
+- User Story 3 can start once US1 completes
+- User Story 4 can start once US2 and US3 complete
+- User Story 5 can start once US2 completes (independent of US3/US4)
+
+---
+
+## Parallel Example: User Story 1
+
+```bash
+# Launch all tests for User Story 1 together:
+Task T013: "Create MuseumContextTests - test unique date constraint"
+Task T014: "Create MuseumHoursIntegrationTests - test GET /museumhours"
+
+# After tests written, launch model and DTO in parallel:
+Task T015: "Create MuseumDailyHours model"
+Task T018: "Create MuseumHoursDto"
+```
+
+---
+
+## Parallel Example: User Story 2
+
+```bash
+# Launch all tests for User Story 2 together:
+Task T023: "Create SpecialEventTests - validation tests"
+Task T024: "Create SpecialEventsIntegrationTests"  
+Task T025: "Add SpecialEventDate constraint tests"
+
+# After tests written, launch all models and DTOs in parallel:
+Task T026: "Create SpecialEvent model"
+Task T027: "Create SpecialEventDate model"
+Task T031: "Create SpecialEventDto"
+```
+
+---
+
+## Implementation Strategy
+
+### MVP First (User Stories 1 & 2 Only - Both P1)
+
+1. Complete Phase 1: Setup (T001-T005)
+2. Complete Phase 2: Foundational (T006-T012) - CRITICAL GATE
+3. Complete Phase 3: User Story 1 - Query Hours (T013-T022)
+4. Complete Phase 4: User Story 2 - Browse Events (T023-T036)
+5. **STOP and VALIDATE**: Test US1 and US2 independently
+6. Deploy/demo if ready - visitors can research the museum
+
+### Incremental Delivery (Add Ticket Purchasing)
+
+1. Complete MVP (Phases 1-4 above)
+2. Add Phase 5: User Story 3 - Purchase General Tickets (T037-T049)
+3. Add Phase 6: User Story 4 - Purchase Event Tickets (T050-T056)
+4. **STOP and VALIDATE**: Test complete visitor flow
+5. Deploy/demo - full visitor experience
+
+### Full Feature (Add Admin Functionality)
+
+1. Complete visitor features (Phases 1-6 above)
+2. Add Phase 7: User Story 5 - Admin Management (T057-T068)
+3. Complete Phase 8: Polish & Cross-Cutting (T069-T080)
+4. **FINAL VALIDATION**: Run full test suite, verify 70%+ coverage
+5. Production deployment
+
+### Parallel Team Strategy
+
+With multiple developers (after Phase 2 Foundational completes):
+
+1. Team completes Setup + Foundational together (T001-T012)
+2. Once Foundational is done:
+   - **Developer A**: User Story 1 - Query Hours (T013-T022)
+   - **Developer B**: User Story 2 - Browse Events (T023-T036)
+3. After US1 and US2 complete:
+   - **Developer A**: User Story 3 - Purchase General Tickets (T037-T049)
+   - **Developer B**: User Story 5 - Admin Management (T057-T068)
+4. After US2 and US3 complete:
+   - **Developer A or B**: User Story 4 - Purchase Event Tickets (T050-T056)
+5. Final polish together (T069-T080)
+
+---
+
+## Notes
+
+- [P] tasks = different files, no dependencies - safe to parallelize
+- [Story] label maps task to specific user story for traceability
+- Each user story should be independently completable and testable
+- Constitution requires test-first development - verify tests FAIL before implementing
+- Constitution requires 70%+ code coverage - validate with T075
+- Constitution requires integration tests prioritized - WebApplicationFactory pattern used
+- Commit after each task or logical group of related tasks
+- Stop at any checkpoint to validate story independently
+- Run `dotnet test` frequently to ensure tests pass incrementally
+- Use `dotnet watch run` during development for hot reload
+- Access Swagger UI at https://localhost:5001/swagger for API testing
+
+---
+
+## Task Count Summary
+
+- **Total Tasks**: 80
+- **Setup (Phase 1)**: 5 tasks
+- **Foundational (Phase 2)**: 7 tasks (BLOCKING)
+- **User Story 1 (Phase 3)**: 10 tasks (MVP baseline)
+- **User Story 2 (Phase 4)**: 14 tasks (MVP complete with US1)
+- **User Story 3 (Phase 5)**: 13 tasks
+- **User Story 4 (Phase 6)**: 7 tasks
+- **User Story 5 (Phase 7)**: 12 tasks
+- **Polish (Phase 8)**: 12 tasks
+- **Parallel Opportunities**: 25 tasks marked [P] for parallel execution
+- **Test Tasks**: 14 tasks (test-first development, constitution compliant)
+
+---
+
+## Constitution Compliance Summary
+
+✅ **Test-First Development**: All user stories include tests written BEFORE implementation (T013-T014, T023-T025, T037-T038, T050-T051, T057-T059)
+
+✅ **Integration Tests Prioritized**: WebApplicationFactory pattern used for all API endpoint testing (constitution requirement)
+
+✅ **70%+ Coverage Target**: Task T075 explicitly validates coverage requirement
+
+✅ **RESTful Design**: All endpoints follow REST principles with proper HTTP verbs (constitution requirement)
+
+✅ **Dependency Injection**: DbContext and services injected, no inline business logic in endpoints (constitution requirement)
+
+✅ **Async/Await**: Task T074 validates all I/O operations use proper async patterns (constitution requirement)
+
+✅ **Structured Logging**: Serilog configured in T009, logging added in T073 (constitution requirement)
+
+✅ **Error Handling**: Centralized exception middleware in T010, Problem Details format in T072 (constitution requirement)
+
+✅ **Code Standards**: Task T078 enforces naming conventions and formatting (constitution requirement)

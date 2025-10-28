@@ -1,0 +1,596 @@
+# Museum API - OpenAPI Specification
+
+openapi: 3.0.3
+info:
+  title: Museum API
+  description: |
+    RESTful API for querying museum hours and special events, and purchasing tickets.
+    
+    ## Features
+    - Query museum operating hours
+    - Browse special events catalog
+    - Purchase general admission tickets
+    - Purchase special event tickets
+    - Manage special events (admin only)
+  version: 1.0.0
+  contact:
+    name: Museum API Support
+
+servers:
+  - url: https://api.museum.example.com/v1
+    description: Production server
+  - url: https://staging-api.museum.example.com/v1
+    description: Staging server
+  - url: http://localhost:5000
+    description: Local development
+
+tags:
+  - name: Museum Hours
+    description: Operations for querying museum operating hours
+  - name: Special Events
+    description: Operations for browsing and managing special events
+  - name: Tickets
+    description: Operations for purchasing museum and event tickets
+
+paths:
+  /museumhours:
+    get:
+      tags:
+        - Museum Hours
+      summary: Get museum operating hours
+      description: |
+        Retrieve museum operating hours for specified dates.
+        Returns hours for a single date or date range.
+      operationId: getMuseumHours
+      parameters:
+        - name: date
+          in: query
+          description: Specific date (YYYY-MM-DD format)
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2025-10-21"
+        - name: startDate
+          in: query
+          description: Start of date range (YYYY-MM-DD format)
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2025-10-21"
+        - name: endDate
+          in: query
+          description: End of date range (YYYY-MM-DD format)
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2025-10-28"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MuseumHours'
+              examples:
+                singleDay:
+                  summary: Single day hours
+                  value:
+                    - date: "2025-10-21"
+                      timeOpen: "09:00:00"
+                      timeClosed: "17:00:00"
+                dateRange:
+                  summary: Multiple days
+                  value:
+                    - date: "2025-10-21"
+                      timeOpen: "09:00:00"
+                      timeClosed: "17:00:00"
+                    - date: "2025-10-22"
+                      timeOpen: "10:00:00"
+                      timeClosed: "18:00:00"
+        '400':
+          description: Invalid date format or parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No hours found for specified date(s)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /specialevents:
+    get:
+      tags:
+        - Special Events
+      summary: List all special events
+      description: |
+        Retrieve all available special events with optional date filtering.
+        Returns event details including name, description, price, and scheduled dates.
+      operationId: listSpecialEvents
+      parameters:
+        - name: date
+          in: query
+          description: Filter events occurring on specific date
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: startDate
+          in: query
+          description: Filter events occurring from this date
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: Filter events occurring until this date
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SpecialEvent'
+              examples:
+                eventList:
+                  summary: List of events
+                  value:
+                    - eventId: "550e8400-e29b-41d4-a716-446655440000"
+                      eventName: "Ancient Egypt Exhibit"
+                      eventDescription: "Explore artifacts from ancient Egyptian civilization"
+                      price: 15.00
+                      eventDates:
+                        - "2025-10-21"
+                        - "2025-10-22"
+                        - "2025-10-23"
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    post:
+      tags:
+        - Special Events
+      summary: Create a new special event (Admin only)
+      description: Create a new special event with name, description, price, and scheduled dates
+      operationId: createSpecialEvent
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSpecialEventRequest'
+            examples:
+              newEvent:
+                summary: Create new event
+                value:
+                  eventName: "Renaissance Art Workshop"
+                  eventDescription: "Interactive workshop exploring Renaissance painting techniques"
+                  price: 25.00
+                  eventDates:
+                    - "2025-11-01"
+                    - "2025-11-02"
+                    - "2025-11-08"
+      responses:
+        '201':
+          description: Event created successfully
+          headers:
+            Location:
+              description: URL of the created event
+              schema:
+                type: string
+                example: "/specialevents/550e8400-e29b-41d4-a716-446655440000"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecialEvent'
+        '400':
+          description: Invalid request body or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - authentication required
+        '403':
+          description: Forbidden - admin role required
+
+  /specialevents/{eventId}:
+    get:
+      tags:
+        - Special Events
+      summary: Get a specific special event
+      description: Retrieve details for a single special event by its ID
+      operationId: getSpecialEvent
+      parameters:
+        - name: eventId
+          in: path
+          description: Event identifier (GUID)
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecialEvent'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    put:
+      tags:
+        - Special Events
+      summary: Update a special event (Admin only)
+      description: Update an existing special event's details
+      operationId: updateSpecialEvent
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: eventId
+          in: path
+          description: Event identifier (GUID)
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSpecialEventRequest'
+      responses:
+        '200':
+          description: Event updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecialEvent'
+        '400':
+          description: Invalid request body or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Event not found
+    
+    delete:
+      tags:
+        - Special Events
+      summary: Delete a special event (Admin only)
+      description: |
+        Permanently delete a special event.
+        Note: Existing ticket purchases will be preserved with null event reference.
+      operationId: deleteSpecialEvent
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: eventId
+          in: path
+          description: Event identifier (GUID)
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Event deleted successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Event not found
+
+  /tickets/purchase:
+    post:
+      tags:
+        - Tickets
+      summary: Purchase museum tickets
+      description: |
+        Purchase tickets for general admission or special events.
+        Validates visit date and calculates total cost.
+      operationId: purchaseTickets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketPurchaseRequest'
+            examples:
+              generalAdmission:
+                summary: General admission purchase
+                value:
+                  visitDate: "2025-10-21"
+                  quantity: 2
+                  eventId: null
+              specialEvent:
+                summary: Special event purchase
+                value:
+                  visitDate: "2025-10-21"
+                  quantity: 2
+                  eventId: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '201':
+          description: Purchase successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketPurchaseResponse'
+              examples:
+                confirmation:
+                  summary: Purchase confirmation
+                  value:
+                    purchaseId: "660e8400-e29b-41d4-a716-446655440000"
+                    visitDate: "2025-10-21"
+                    quantity: 2
+                    totalCost: 30.00
+                    eventId: "550e8400-e29b-41d4-a716-446655440000"
+                    eventName: "Ancient Egypt Exhibit"
+                    purchaseDate: "2025-10-15T14:30:00Z"
+        '400':
+          description: Invalid request or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                closedDate:
+                  summary: Museum closed on visit date
+                  value:
+                    error: "ValidationError"
+                    message: "Museum is closed on 2025-10-21"
+                invalidEvent:
+                  summary: Event not scheduled on date
+                  value:
+                    error: "ValidationError"
+                    message: "Event is not scheduled on 2025-10-21"
+        '404':
+          description: Event not found
+
+components:
+  schemas:
+    MuseumHours:
+      type: object
+      required:
+        - date
+        - timeOpen
+        - timeClosed
+      properties:
+        date:
+          type: string
+          format: date
+          description: The calendar date
+          example: "2025-10-21"
+        timeOpen:
+          type: string
+          format: time
+          description: Opening time (HH:mm:ss format)
+          example: "09:00:00"
+        timeClosed:
+          type: string
+          format: time
+          description: Closing time (HH:mm:ss format)
+          example: "17:00:00"
+    
+    SpecialEvent:
+      type: object
+      required:
+        - eventId
+        - eventName
+        - eventDescription
+        - price
+        - eventDates
+      properties:
+        eventId:
+          type: string
+          format: uuid
+          description: Unique event identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        eventName:
+          type: string
+          maxLength: 200
+          description: Display name of the event
+          example: "Ancient Egypt Exhibit"
+        eventDescription:
+          type: string
+          maxLength: 2000
+          description: Detailed description
+          example: "Explore artifacts from ancient Egyptian civilization including mummies, hieroglyphs, and treasures from the pyramids."
+        price:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: Ticket price in dollars
+          example: 15.00
+        eventDates:
+          type: array
+          items:
+            type: string
+            format: date
+          description: Dates when the event is scheduled
+          example:
+            - "2025-10-21"
+            - "2025-10-22"
+            - "2025-10-23"
+    
+    CreateSpecialEventRequest:
+      type: object
+      required:
+        - eventName
+        - eventDescription
+        - price
+        - eventDates
+      properties:
+        eventName:
+          type: string
+          maxLength: 200
+          minLength: 1
+          example: "Renaissance Art Workshop"
+        eventDescription:
+          type: string
+          maxLength: 2000
+          minLength: 1
+          example: "Interactive workshop exploring Renaissance painting techniques"
+        price:
+          type: number
+          format: decimal
+          minimum: 0.01
+          example: 25.00
+        eventDates:
+          type: array
+          items:
+            type: string
+            format: date
+          minItems: 1
+          example:
+            - "2025-11-01"
+            - "2025-11-02"
+    
+    UpdateSpecialEventRequest:
+      type: object
+      properties:
+        eventName:
+          type: string
+          maxLength: 200
+          minLength: 1
+        eventDescription:
+          type: string
+          maxLength: 2000
+          minLength: 1
+        price:
+          type: number
+          format: decimal
+          minimum: 0.01
+        eventDates:
+          type: array
+          items:
+            type: string
+            format: date
+          minItems: 1
+      description: All fields are optional - only provided fields will be updated
+    
+    TicketPurchaseRequest:
+      type: object
+      required:
+        - visitDate
+        - quantity
+      properties:
+        visitDate:
+          type: string
+          format: date
+          description: Date of intended visit
+          example: "2025-10-21"
+        quantity:
+          type: integer
+          minimum: 1
+          description: Number of tickets
+          example: 2
+        eventId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Event ID for special event tickets (null for general admission)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+    
+    TicketPurchaseResponse:
+      type: object
+      required:
+        - purchaseId
+        - visitDate
+        - quantity
+        - totalCost
+        - purchaseDate
+      properties:
+        purchaseId:
+          type: string
+          format: uuid
+          description: Unique purchase identifier
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        visitDate:
+          type: string
+          format: date
+          description: Date of intended visit
+          example: "2025-10-21"
+        quantity:
+          type: integer
+          description: Number of tickets purchased
+          example: 2
+        totalCost:
+          type: number
+          format: decimal
+          description: Total purchase amount in dollars
+          example: 30.00
+        eventId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Associated event ID (null for general admission)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        eventName:
+          type: string
+          nullable: true
+          description: Event name for confirmation (null for general admission)
+          example: "Ancient Egypt Exhibit"
+        purchaseDate:
+          type: string
+          format: date-time
+          description: Transaction timestamp
+          example: "2025-10-15T14:30:00Z"
+    
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error type/code
+          example: "ValidationError"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Museum is closed on 2025-10-21"
+        details:
+          type: object
+          description: Additional error details (optional)
+          additionalProperties: true
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authenticated admin operations

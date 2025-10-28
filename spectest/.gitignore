@@ -1,0 +1,5 @@
+.vs/**
+MuseumApi/obj/**
+MuseumApi.Tests/obj/**
+MuseumApi.Tests/bin/**
+MuseumApi/bin/**
